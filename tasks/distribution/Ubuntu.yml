@@ -100,52 +100,6 @@
         enabled: yes
         daemon_reload: yes
 
-    - name: "check {{ node_exporter_dir }}-{{ node_exporter_version }}"
-      stat:
-        path: "{{ node_exporter_dir }}-{{ node_exporter_version }}"
-      register: result
-
-    # node_exporterをダウンロードし解凍
-    - name: Unarchive node_exporter that needs to be downloaded
-      unarchive:
-        src: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.{{ ansible_system }}-{{ monitoring_ansible_architecture }}.tar.gz"
-        dest: "{{ node_exporter_src_dir }}"
-        creates: "{{ node_exporter_src_dir }}/node_exporter-{{ node_exporter_version }}"
-        remote_src: yes
-      when: not result.stat.exists
-
-    # /usr/localに解凍したディレクトリをコピー
-    - name: node_exporter copy
-      synchronize:
-        src: "{{ node_exporter_src_dir }}/node_exporter-{{ node_exporter_version }}/"
-        dest: "{{ node_exporter_dir }}-{{ node_exporter_version }}"
-      delegate_to: "{{ inventory_hostname }}"
-      when: not result.stat.exists
-
-    - name: "make node_exporter link"
-      file:
-        src: "{{ node_exporter_dir }}-{{ node_exporter_version }}"
-        dest: "{{ node_exporter_dir }}"
-        state: link
-      when: not result.stat.exists
-
-    # ローカルのnode_exporter.serviceファイルをコピー
-    - name: copy node_exporter.service in /etc/systemd/system/
-      template:
-        src: etc/systemd/system/node_exporter.service
-        dest: /etc/systemd/system/node_exporter.service
-        owner: root
-        group: root
-        mode: 0644
-
-    # systemctlを再起動し設定を反映、自動起動設定の有効化とサービスの起動
-    - name: set state node_exporter
-      systemd:
-        name: node_exporter
-        state: restarted
-        enabled: yes
-        daemon_reload: yes
-
     #/usr/local/alertmanager-{{ alertmanager_version }}が存在するかをチェック
     - name: check "{{ alertmanager_bin }}-{{ alertmanager_version }}"
       stat:
@@ -211,3 +165,49 @@
         enabled: yes
 
   when: prometeus_install
+
+- name: "check {{ node_exporter_dir }}-{{ node_exporter_version }}"
+  stat:
+    path: "{{ node_exporter_dir }}-{{ node_exporter_version }}"
+  register: result
+
+# node_exporterをダウンロードし解凍
+- name: Unarchive node_exporter that needs to be downloaded
+  unarchive:
+    src: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.{{ ansible_system }}-{{ monitoring_ansible_architecture }}.tar.gz"
+    dest: "{{ node_exporter_src_dir }}"
+    creates: "{{ node_exporter_src_dir }}/node_exporter-{{ node_exporter_version }}"
+    remote_src: yes
+  when: not result.stat.exists
+
+# /usr/localに解凍したディレクトリをコピー
+- name: node_exporter copy
+  synchronize:
+    src: "{{ node_exporter_src_dir }}/node_exporter-{{ node_exporter_version }}/"
+    dest: "{{ node_exporter_dir }}-{{ node_exporter_version }}"
+  delegate_to: "{{ inventory_hostname }}"
+  when: not result.stat.exists
+
+- name: "make node_exporter link"
+  file:
+    src: "{{ node_exporter_dir }}-{{ node_exporter_version }}"
+    dest: "{{ node_exporter_dir }}"
+    state: link
+  when: not result.stat.exists
+
+# ローカルのnode_exporter.serviceファイルをコピー
+- name: copy node_exporter.service in /etc/systemd/system/
+  template:
+    src: etc/systemd/system/node_exporter.service
+    dest: /etc/systemd/system/node_exporter.service
+    owner: root
+    group: root
+    mode: 0644
+
+# systemctlを再起動し設定を反映、自動起動設定の有効化とサービスの起動
+- name: set state node_exporter
+  systemd:
+    name: node_exporter
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
