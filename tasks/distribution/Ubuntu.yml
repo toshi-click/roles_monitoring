@@ -1,0 +1,213 @@
+---
+# mackerel
+- block:
+    - name: Import mackerel GPG key v2
+      apt_key:
+        url: https://mackerel.io/file/cert/GPG-KEY-mackerel-v2
+        state: present
+
+    - name: Add repository mackerel v2
+      apt_repository:
+        repo: 'deb http://apt.mackerel.io/v2/ mackerel contrib'
+        state: present
+        update_cache: yes
+
+    - name: apt install mackerel
+      apt:
+        name: "{{ item }}"
+        update_cache: yes
+        cache_valid_time: 3600
+      with_items:
+        - mackerel-agent
+        - mackerel-agent-plugins
+        - mackerel-check-plugins
+
+    # ホスト縮退時に自動退役させる設定
+    - name: Set auto-retirement agent
+      copy:
+        src: etc/default/mackerel-agent.conf
+        dest: /etc/default/mackerel-agent.conf
+      when: mackerel_auto_retirement
+
+    - name: set state mackerel-agent
+      systemd:
+        name: mackerel-agent
+        state: restarted
+        daemon_reload: yes
+        enabled: yes
+
+  when: mackerel_install
+
+# prometheus grafana alertmanager node_exporter
+- block:
+    - name: "make prometheus data directory {{ prometheus_data_dir }}"
+      file:
+        path: "{{ prometheus_data_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0766'
+
+    - name: "create directory prometheus conf dir"
+      file:
+        path: "{{ prometheus_conf_dir }}"
+        state: directory
+        mode: 0755
+
+    #/usr/local/prometheus-{{ prometheus_version }}が存在するかをチェック
+    - name: "check {{ prometheus_dir }}-{{ prometheus_version }}"
+      stat:
+        path: "{{ prometheus_dir }}-{{ prometheus_version }}"
+      register: result
+
+    # prometheusをダウンロードし解凍
+    - name: Unarchive prometheus that needs to be downloaded
+      unarchive:
+        src: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.{{ ansible_system }}-{{ monitoring_ansible_architecture }}.tar.gz"
+        dest: "{{ prometheus_src_dir }}"
+        creates: "{{ prometheus_src_dir }}/prometheus-{{ prometheus_version }}"
+        remote_src: yes
+      when: not result.stat.exists
+
+    # /usr/localに解凍したディレクトリをコピー
+    - name: prometheus copy
+      synchronize:
+        src: "{{ prometheus_src_dir }}/prometheus-{{ prometheus_version }}/"
+        dest: "{{ prometheus_dir }}-{{ prometheus_version }}"
+      delegate_to: "{{ inventory_hostname }}"
+      when: not result.stat.exists
+
+    - name: "make prometheus link"
+      file:
+        src: "{{ prometheus_dir }}-{{ prometheus_version }}"
+        dest: "{{ prometheus_dir }}"
+        state: link
+      when: not result.stat.exists
+
+    - name: prometheus.service set
+      template:
+        src: etc/systemd/system/prometheus.service
+        dest: /etc/systemd/system/prometheus.service
+        owner: root
+        group: root
+        mode: 0644
+
+    # systemctlを再起動し設定を反映、自動起動設定の有効化とサービスの起動
+    - name: set state prometheus
+      systemd:
+        name: prometheus
+        state: restarted
+        enabled: yes
+        daemon_reload: yes
+
+    - name: "check {{ node_exporter_dir }}-{{ node_exporter_version }}"
+      stat:
+        path: "{{ node_exporter_dir }}-{{ node_exporter_version }}"
+      register: result
+
+    # node_exporterをダウンロードし解凍
+    - name: Unarchive node_exporter that needs to be downloaded
+      unarchive:
+        src: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.{{ ansible_system }}-{{ monitoring_ansible_architecture }}.tar.gz"
+        dest: "{{ node_exporter_src_dir }}"
+        creates: "{{ node_exporter_src_dir }}/node_exporter-{{ node_exporter_version }}"
+        remote_src: yes
+      when: not result.stat.exists
+
+    # /usr/localに解凍したディレクトリをコピー
+    - name: node_exporter copy
+      synchronize:
+        src: "{{ node_exporter_src_dir }}/node_exporter-{{ node_exporter_version }}/"
+        dest: "{{ node_exporter_dir }}-{{ node_exporter_version }}"
+      delegate_to: "{{ inventory_hostname }}"
+      when: not result.stat.exists
+
+    - name: "make node_exporter link"
+      file:
+        src: "{{ node_exporter_dir }}-{{ node_exporter_version }}"
+        dest: "{{ node_exporter_dir }}"
+        state: link
+      when: not result.stat.exists
+
+    # ローカルのnode_exporter.serviceファイルをコピー
+    - name: copy node_exporter.service in /etc/systemd/system/
+      template:
+        src: etc/systemd/system/node_exporter.service
+        dest: /etc/systemd/system/node_exporter.service
+        owner: root
+        group: root
+        mode: 0644
+
+    # systemctlを再起動し設定を反映、自動起動設定の有効化とサービスの起動
+    - name: set state node_exporter
+      systemd:
+        name: node_exporter
+        state: restarted
+        enabled: yes
+        daemon_reload: yes
+
+    #/usr/local/alertmanager-{{ alertmanager_version }}が存在するかをチェック
+    - name: check "{{ alertmanager_bin }}-{{ alertmanager_version }}"
+      stat:
+        path: "{{ alertmanager_bin }}-{{ alertmanager_version }}"
+      register: result
+
+    # alertmanagerをダウンロードし解凍
+    - name: Unarchive alertmanager that needs to be downloaded
+      unarchive:
+        src: https://github.com/prometheus/alertmanager/releases/download/v{{ alertmanager_version }}/alertmanager-{{ alertmanager_version }}.{{ ansible_system }}-{{ monitoring_ansible_architecture }}.tar.gz
+        dest: "{{ alertmanager_src_dir }}"
+        creates: "{{ alertmanager_src_dir }}/alertmanager-{{ alertmanager_version }}"
+        remote_src: yes
+      when: not result.stat.exists
+
+    # /usr/localに解凍したディレクトリをコピー
+    - name: alertmanager copy
+      synchronize:
+        src: "{{ alertmanager_src_dir }}/alertmanager-{{ alertmanager_version }}"
+        dest: "{{ alertmanager_bin }}-{{ alertmanager_version }}"
+      delegate_to: "{{ inventory_hostname }}"
+      when: not result.stat.exists
+
+    # ローカルのalertmanager.serviceファイルをコピー
+    - name: Insert/Update alertmanager.service in /etc/systemd/system/
+      template:
+        src: etc/systemd/system/alertmanager.service
+        dest: /etc/systemd/system/alertmanager.service
+
+    # systemctlを再起動し設定を反映、自動起動設定の有効化とサービスの起動
+    - name: set state alertmanager
+      systemd:
+        name: alertmanager
+        state: restarted
+        enabled: yes
+        daemon_reload: yes
+
+    - name: set grafana gpg key
+      apt_key:
+        url: "https://packages.grafana.com/gpg.key"
+        state: present
+
+    - name: "grafana repo set"
+      copy:
+        src: etc/apt/sources.list.d/grafana.list
+        dest: /etc/apt/sources.list.d/grafana.list
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: apt install grafana
+      apt:
+        name: grafana
+        update_cache: yes
+        cache_valid_time: 3600
+      with_items:
+
+    # 自動起動設定の有効化とサービスの起動
+    - name: set State grafana-server
+      systemd:
+        name: grafana-server
+        state: restarted
+        enabled: yes
+
+  when: prometeus_install
