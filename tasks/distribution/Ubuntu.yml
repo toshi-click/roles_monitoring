@@ -175,14 +175,13 @@
   unarchive:
     src: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.{{ ansible_system }}-{{ monitoring_ansible_architecture }}.tar.gz"
     dest: "{{ node_exporter_src_dir }}"
-    creates: "{{ node_exporter_src_dir }}/node_exporter-{{ node_exporter_version }}"
     remote_src: yes
   when: not result.stat.exists
 
 # /usr/localに解凍したディレクトリをコピー
 - name: node_exporter copy
   synchronize:
-    src: "{{ node_exporter_src_dir }}/node_exporter-{{ node_exporter_version }}/"
+    src: "{{ node_exporter_src_dir }}/node_exporter-{{ node_exporter_version }}.{{ ansible_system }}-{{ monitoring_ansible_architecture }}/"
     dest: "{{ node_exporter_dir }}-{{ node_exporter_version }}"
   delegate_to: "{{ inventory_hostname }}"
   when: not result.stat.exists
