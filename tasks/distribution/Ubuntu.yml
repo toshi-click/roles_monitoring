@@ -155,7 +155,6 @@
         name: grafana
         update_cache: yes
         cache_valid_time: 3600
-      with_items:
 
     # 自動起動設定の有効化とサービスの起動
     - name: set State grafana-server
