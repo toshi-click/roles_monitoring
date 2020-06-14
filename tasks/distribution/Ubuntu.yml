@@ -65,14 +65,13 @@
       unarchive:
         src: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.{{ ansible_system }}-{{ monitoring_ansible_architecture }}.tar.gz"
         dest: "{{ prometheus_src_dir }}"
-        creates: "{{ prometheus_src_dir }}/prometheus-{{ prometheus_version }}"
         remote_src: yes
       when: not result.stat.exists
 
     # /usr/localに解凍したディレクトリをコピー
     - name: prometheus copy
       synchronize:
-        src: "{{ prometheus_src_dir }}/prometheus-{{ prometheus_version }}/"
+        src: "{{ prometheus_src_dir }}/prometheus-{{ prometheus_version }}.linux-{{ monitoring_ansible_architecture }}/"
         dest: "{{ prometheus_dir }}-{{ prometheus_version }}"
       delegate_to: "{{ inventory_hostname }}"
       when: not result.stat.exists
