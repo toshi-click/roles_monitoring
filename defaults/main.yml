@@ -10,7 +10,8 @@ prometheus_src_dir: /usr/local/src
 prometheus_dir: /usr/local/prometheus-server
 prometheus_conf_dir: /etc/prometheus
 prometheus_conf_file: /etc/prometheus/prometheus.yml
-prometheus_data_dir: /var/lib/prometheus
+prometheus_data_dir: /var/lib/prometheus/data
+prometheus_data_retention_day: 360
 
 # 最新バージョンの確認はhttps://github.com/prometheus/node_exporter/releases
 node_exporter_version: 1.0.0
