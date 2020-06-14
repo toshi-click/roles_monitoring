@@ -117,7 +117,7 @@
     # /usr/localに解凍したディレクトリをコピー
     - name: alertmanager copy
       synchronize:
-        src: "{{ alertmanager_src_dir }}/alertmanager-{{ alertmanager_version }}linux-{{ monitoring_ansible_architecture }}/"
+        src: "{{ alertmanager_src_dir }}/alertmanager-{{ alertmanager_version }}.linux-{{ monitoring_ansible_architecture }}/"
         dest: "{{ alertmanager_bin }}-{{ alertmanager_version }}"
       delegate_to: "{{ inventory_hostname }}"
       when: not result.stat.exists
