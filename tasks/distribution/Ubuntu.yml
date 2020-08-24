@@ -14,13 +14,15 @@
 
     - name: apt install mackerel
       apt:
-        name: "{{ item }}"
+        name: "{{ packages }}"
         update_cache: yes
         cache_valid_time: 3600
-      with_items:
-        - mackerel-agent
-        - mackerel-agent-plugins
-        - mackerel-check-plugins
+        state: present
+      vars:
+        packages:
+          - mackerel-agent
+          - mackerel-agent-plugins
+          - mackerel-check-plugins
 
     # ホスト縮退時に自動退役させる設定
     - name: Set auto-retirement agent
