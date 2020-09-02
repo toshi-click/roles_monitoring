@@ -171,6 +171,7 @@
   register: result
 
 # node_exporterをダウンロードし解凍
+# https://github.com/prometheus/node_exporter/releases
 - name: Unarchive node_exporter that needs to be downloaded
   unarchive:
     src: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.{{ ansible_system }}-{{ monitoring_ansible_architecture }}.tar.gz"
