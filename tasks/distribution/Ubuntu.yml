@@ -124,6 +124,11 @@
       delegate_to: "{{ inventory_hostname }}"
       when: not result.stat.exists
 
+    - name: Set alertmanager alert rule
+      copy:
+        src: etc/prometheus/alert_rules.yml
+        dest: /etc/prometheus/alert_rules.yml
+
     # ローカルのalertmanager.serviceファイルをコピー
     - name: Insert/Update alertmanager.service in /etc/systemd/system/
       template:
