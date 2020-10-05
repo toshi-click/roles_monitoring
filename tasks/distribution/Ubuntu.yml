@@ -128,12 +128,17 @@
       copy:
         src: etc/prometheus/alert_rules.yml
         dest: /etc/prometheus/alert_rules.yml
+      notify:
+        - Restart alertmanager services
+        - Restart prometheus services
 
     # ローカルのalertmanager.serviceファイルをコピー
     - name: Insert/Update alertmanager.service in /etc/systemd/system/
       template:
         src: etc/systemd/system/alertmanager.service
         dest: /etc/systemd/system/alertmanager.service
+      notify:
+        - Restart alertmanager services
 
     # systemctlを再起動し設定を反映、自動起動設定の有効化とサービスの起動
     - name: set state alertmanager
