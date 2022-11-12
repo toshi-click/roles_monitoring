@@ -1,9 +1,4 @@
 ---
-mackerel_install: false
-mackerel_Api_Key: ""
-mackerel_use_plugins: yes
-mackerel_auto_retirement: no
-
 prometeus_install: false
 prometheus_version: 2.17.2
 prometheus_src_dir: /usr/local/src
